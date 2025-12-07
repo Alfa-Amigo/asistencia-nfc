@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎫 Sistema NFC Asistencias</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="manifest" href="data:application/json,{}">
+</head>
+<body>
+    <!-- Loading -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <h2>🎫 NFC Asistencias</h2>
+        <p>Cargando sistema...</p>
+    </div>
+
+    <!-- Login -->
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="logo">
+                    <i class="fas fa-id-card"></i>
+                    <h1>Sistema NFC Asistencias</h1>
+                    <p>Control de asistencias con Google Sheets</p>
+                </div>
+                
+                <div class="login-form">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="Usuario" value="admin">
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="Contraseña" value="admin123">
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <select id="classSelect">
+                            <option value="">Selecciona una clase</option>
+                            <option value="matematicas">Matemáticas 10°A</option>
+                            <option value="ciencias">Ciencias 11°B</option>
+                            <option value="español">Español 9°C</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="login()">
+                        <i class="fas fa-sign-in-alt"></i> Ingresar al Sistema
+                    </button>
+                    
+                    <div class="demo-note">
+                        <i class="fas fa-info-circle"></i> Usuario demo: admin / admin123
+                    </div>
+                </div>
+                
+                <div class="login-footer">
+                    <p><i class="fas fa-rocket"></i> Desplegado en Render + GitHub</p>
+                    <p class="version">v2.0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="appScreen" class="screen hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-btn" onclick="toggleMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="app-info">
+                    <h2><i class="fas fa-id-card"></i> NFC Asistencias</h2>
+                    <p id="currentClass">Matemáticas 10°A</p>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="status-badge" id="connectionStatus">
+                    <i class="fas fa-wifi"></i>
+                    <span>Conectado</span>
+                </div>
+                
+                <div class="datetime">
+                    <i class="fas fa-clock"></i>
+                    <span id="currentTime">--:--:--</span>
+                </div>
+                
+                <button class="btn-icon" onclick="syncNow()" title="Sincronizar">
+                    <i class="fas fa-sync"></i>
+                </button>
+                
+                <button class="btn-icon logout-btn" onclick="logout()" title="Salir">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-menu">
+                <a href="#" class="menu-item active" onclick="showPage('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showPage('register')">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Registro NFC</span>
+                    <span class="badge" id="pendingBadge">0</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showPage('students')">
+                    <i class="fas fa-users"></i>
+                    <span>Estudiantes</span>
+                    <span class="badge" id="studentsBadge">0</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showPage('history')">
+                    <i class="fas fa-history"></i>
+                    <span>Historial</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showPage('reports')">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Reportes</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showPage('nfc')">
+                    <i class="fas fa-id-card"></i>
+                    <span>Tarjetas NFC</span>
+                </a>
+                <a href="#" class="menu-item" onclick="showPage('config')">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <p class="user-name" id="userName">Admin</p>
+                        <p class="user-role">Profesor</p>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Dashboard -->
+            <section id="pageDashboard" class="page active">
+                <div class="page-header">
+                    <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+                    <p>Resumen general del sistema</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#4f46e5;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalStudents">0</h3>
+                            <p>Estudiantes</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#10b981;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="presentToday">0</h3>
+                            <p>Presentes Hoy</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#f59e0b;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="lateToday">0</h3>
+                            <p>Tardanzas Hoy</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background:#ef4444;">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="absentToday">0</h3>
+                            <p>Faltas Hoy</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-content">
+                    <div class="card">
+                        <h3><i class="fas fa-chart-line"></i> Asistencia Últimos 7 Días</h3>
+                        <div class="chart-container">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3><i class="fas fa-history"></i> Últimos Registros</h3>
+                        <div class="recent-list" id="recentList">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No hay registros recientes</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Registro NFC -->
+            <section id="pageRegister" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-qrcode"></i> Registro con NFC</h2>
+                    <p>Acerca una tarjeta NFC para registrar asistencia</p>
+                </div>
+                
+                <div class="nfc-container">
+                    <div class="nfc-reader" id="nfcReader">
+                        <div class="nfc-animation">
+                            <div class="phone"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="card"><i class="fas fa-id-card"></i></div>
+                            <div class="waves"></div>
+                        </div>
+                        <p id="nfcStatusText">Listo para leer NFC</p>
+                        <button class="btn btn-nfc" onclick="startNFC()">
+                            <i class="fas fa-nfc-signal"></i> Iniciar Lectura NFC
+                        </button>
+                        <p class="nfc-info">
+                            <i class="fas fa-info-circle"></i> Usa Chrome en Android para NFC real
+                        </p>
+                    </div>
+                    
+                    <div class="student-card hidden" id="studentCard">
+                        <div class="student-header">
+                            <div class="student-avatar">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div class="student-info">
+                                <h3 id="studentName">Nombre del Estudiante</h3>
+                                <p id="studentId">Matrícula: ---</p>
+                            </div>
+                        </div>
+                        
+                        <div class="student-details">
+                            <div class="detail">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>Grado: <strong id="studentGrade">-</strong></span>
+                            </div>
+                            <div class="detail">
+                                <i class="fas fa-users"></i>
+                                <span>Grupo: <strong id="studentGroup">-</strong></span>
+                            </div>
+                            <div class="detail">
+                                <i class="fas fa-clock"></i>
+                                <span>Hora: <strong id="studentTime">-</strong></span>
+                            </div>
+                        </div>
+                        
+                        <div class="attendance-actions">
+                            <select id="attendanceStatus">
+                                <option value="Presente">✅ Presente</option>
+                                <option value="Tardanza">⏰ Tardanza</option>
+                                <option value="Falta">❌ Falta</option>
+                                <option value="Justificada">📝 Justificada</option>
+                            </select>
+                            
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary" onclick="cancelAttendance()">
+                                    Cancelar
+                                </button>
+                                <button class="btn btn-success" onclick="confirmAttendance()">
+                                    <i class="fas fa-check"></i> Registrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Estudiantes -->
+            <section id="pageStudents" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-users"></i> Gestión de Estudiantes</h2>
+                    <button class="btn btn-primary" onclick="addStudent()">
+                        <i class="fas fa-plus"></i> Nuevo Estudiante
+                    </button>
+                </div>
+                
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre o matrícula..." 
+                           onkeyup="searchStudents()">
+                </div>
+                
+                <div class="students-grid" id="studentsGrid">
+                    <!-- Estudiantes cargados aquí -->
+                </div>
+            </section>
+
+            <!-- Historial -->
+            <section id="pageHistory" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-history"></i> Historial de Asistencias</h2>
+                    <div class="date-filter">
+                        <input type="date" id="dateFrom" value="">
+                        <span>a</span>
+                        <input type="date" id="dateTo" value="">
+                        <button class="btn btn-secondary" onclick="filterHistory()">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                        <button class="btn btn-primary" onclick="exportHistory()">
+                            <i class="fas fa-download"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="history-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Estudiante</th>
+                                <th>Grado</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable">
+                            <!-- Historial cargado aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reportes -->
+            <section id="pageReports" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-chart-bar"></i> Reportes y Estadísticas</h2>
+                    <button class="btn btn-primary" onclick="generateReport()">
+                        <i class="fas fa-file-pdf"></i> Generar Reporte
+                    </button>
+                </div>
+                
+                <div class="reports-container">
+                    <div class="report-card">
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Estado</h3>
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="report-card">
+                        <h3><i class="fas fa-calendar-alt"></i> Asistencia Mensual</h3>
+                        <div class="chart-container">
+                            <canvas id="monthlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="report-stats">
+                    <div class="stat-box">
+                        <h4>📊 Estadísticas Generales</h4>
+                        <div class="stats-list" id="generalStats">
+                            <!-- Estadísticas cargadas aquí -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Configuración -->
+            <section id="pageConfig" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-cog"></i> Configuración del Sistema</h2>
+                    <button class="btn btn-primary" onclick="saveConfig()">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+                
+                <div class="config-grid">
+                    <div class="config-card">
+                        <h3><i class="fab fa-google"></i> Google Sheets</h3>
+                        <div class="config-item">
+                            <label>ID de Google Sheet:</label>
+                            <input type="text" id="sheetId" placeholder="Ej: 1A2B3C4D5E6F7G8H9I0J">
+                        </div>
+                        <div class="config-item">
+                            <label>Nombre de la hoja:</label>
+                            <input type="text" id="sheetName" value="Asistencias">
+                        </div>
+                        <button class="btn btn-secondary" onclick="testSheets()">
+                            <i class="fas fa-test-tube"></i> Probar Conexión
+                        </button>
+                    </div>
+                    
+                    <div class="config-card">
+                        <h3><i class="fas fa-sliders-h"></i> Sistema</h3>
+                        <div class="config-item">
+                            <label>Institución:</label>
+                            <input type="text" id="institution" value="Mi Escuela">
+                        </div>
+                        <div class="config-item">
+                            <label>Hora de inicio:</label>
+                            <input type="time" id="startTime" value="08:00">
+                        </div>
+                        <div class="config-item">
+                            <label>Tolerancia (min):</label>
+                            <input type="number" id="tolerance" value="15" min="0" max="60">
+                        </div>
+                    </div>
+                    
+                    <div class="config-card">
+                        <h3><i class="fas fa-bell"></i> Notificaciones</h3>
+                        <div class="config-item checkbox">
+                            <label>
+                                <input type="checkbox" id="notifySound" checked>
+                                <span>Sonido al registrar</span>
+                            </label>
+                        </div>
+                        <div class="config-item checkbox">
+                            <label>
+                                <input type="checkbox" id="autoSync" checked>
+                                <span>Sincronización automática</span>
+                            </label>
+                        </div>
+                        <div class="config-item checkbox">
+                            <label>
+                                <input type="checkbox" id="offlineMode" checked>
+                                <span>Modo offline</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="config-card">
+                        <h3><i class="fas fa-database"></i> Datos</h3>
+                        <div class="config-actions">
+                            <button class="btn btn-secondary" onclick="exportData()">
+                                <i class="fas fa-download"></i> Exportar Datos
+                            </button>
+                            <button class="btn btn-secondary" onclick="importData()">
+                                <i class="fas fa-upload"></i> Importar Datos
+                            </button>
+                            <button class="btn btn-danger" onclick="clearData()">
+                                <i class="fas fa-trash"></i> Limpiar Datos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="system-info">
+                    <h3><i class="fas fa-info-circle"></i> Información del Sistema</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span>Versión:</span>
+                            <strong>2.0.0</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Registros:</span>
+                            <strong id="infoRecords">0</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>Última sync:</span>
+                            <strong id="lastSync">Nunca</strong>
+                        </div>
+                        <div class="info-item">
+                            <span>NFC:</span>
+                            <strong id="nfcSystemStatus">No disponible</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Notificaciones -->
+        <div id="notifications"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        // Ocultar loading
+        setTimeout(() => {
+            document.getElementById('loading').style.display = 'none';
+            updateTime();
+            setInterval(updateTime, 1000);
+        }, 1500);
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = 
+                now.toLocaleTimeString('es-ES', {hour12: false});
+        }
+    </script>
+</body>
+</html>
